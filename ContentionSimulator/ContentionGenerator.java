@@ -93,9 +93,14 @@ public class ContentionGenerator {
 	public void fulfillRequested(){
 		
 		for(Peer peer : peers){
+			List<Job> jobs = new ArrayList<Job>();
 			for(User user : peer.getUsers())
 				jobs.addAll(user.getJobs());
+			Collections.sort(jobs);
+			requested.put(peer, HashMap<Integer,Integer>)
 		}	
+		
+		
 		
 		
 		int lastTaskEndTime = 0;

@@ -91,6 +91,12 @@ public class ContentionGenerator {
 	}
 	
 	public void fulfillRequested(){
+		
+		for(Peer peer : peers){
+			for(User user : peer.getUsers())
+				jobs.addAll(user.getJobs());
+		}		
+		
 		int lastTaskEndTime = 0;
 		
 		for(Job job : jobs){
