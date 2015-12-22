@@ -24,6 +24,12 @@ public class Peer {
 		else
 			return true;
 	}
+	
+	@Override
+	public int hashCode() {
+		String id = peerId.substring(1, peerId.length());
+		return Integer.parseInt(id);
+	}
 
 	public String getPeerId() {
 		return peerId;

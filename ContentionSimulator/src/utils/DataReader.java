@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import model.Job;
@@ -15,10 +16,21 @@ import model.User;
 public class DataReader {
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		String file = "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t2.txt";
+		String file = "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t1.txt";
 		DataReader dr = new DataReader();
 		List<Peer> peers = new ArrayList<Peer>();
 		dr.readWorkload(peers, file);
+		
+		for(Peer peer : peers){
+			for(User user : peer.getUsers()){
+				Collections.sort(user.getJobs());
+				for(Job job : user.getJobs()){
+					if(job.getSubmitTime()<600)
+						System.out.println(peer.getPeerId()+"; "+user.getUserId()+"; "+job.getId()+"; "+job.getSubmitTime());
+				}
+			}
+		}
+		
 		System.out.println("end");
 	}
 	

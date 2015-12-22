@@ -16,62 +16,50 @@ import model.User;
 public class ContentionGenerator {
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		String files[] = new String[]{ //"/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t1.txt",
-									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t2.txt"//,
+		String files[] = new String[]{ "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t1.txt"//,
+//									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t2.txt"//,
 //									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t3.txt",
 //									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t4.txt",
 //									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t10.txt",
 //									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t11.txt"
 									   };
-		double peerCapacity = 10;
+		int peerCapacity = 10;
 		int granularity = 50;
 		ContentionGenerator cg = new ContentionGenerator(peerCapacity, granularity);
 		cg.readWorkloads(files);
-		cg.sortJobs();
-		
-//		for(int i = 0; i<10; i++){
-//			for(Task task : cg.getJobs().get(i).getTasks()){
-//				System.out.println("Job id: "+cg.getJobs().get(i).getId()+
-//						"; SubmitTime: "+cg.getJobs().get(i).getSubmitTime()+
-//						"; Runtime: "+task.getRuntime());
-//			}
-//		}
-		
-		System.out.println();
+		cg.fulfillRequested();
 		
 		cg.fulfillRequested();
 		
-		//print map
-		for (Map.Entry<Integer, Integer> entry : cg.getRequested().entrySet()) {
-		    Integer key = entry.getKey();
-		    Integer value = entry.getValue();
-		    if(key < 50)
-		    	System.out.println("["+key+"] == "+value+" requested");
+		cg.fulfillFederationRequestsData();
+				
+		for(int i = 0; i < 100; i++){
+			System.out.println("Req: "+cg.getRequestedToTheFederation().get(i)+"; Sup: "+cg.getSuppliedToTheFederation().get(i)+"; Kappa = "+((double)cg.getRequestedToTheFederation().get(i)/cg.getSuppliedToTheFederation().get(i)));			
 		}
+
+		
+		    
 		
 	}
 	
 	private int granularity;
-	private double peerCapacity;
+	private int peerCapacity;
 	private List<Peer> peers;
-	private List<Job> jobs;
 	
-	private Map<Peer, HashMap<Integer, Integer>> requested;
-//	private Map<Integer, Integer> supplied;
+	private Map<Peer, HashMap<Integer, Integer>> requestedPerPeer;
+	private Map<Integer, Integer> requestedToTheFederation;
+	private Map<Integer, Integer> suppliedToTheFederation;
 	
-//	private Map<Integer, Double> contention;
 	
-	public ContentionGenerator(double peerCapacity, int granularity){
+	public ContentionGenerator(int peerCapacity, int granularity){
 		this.peerCapacity = peerCapacity;
 		this.granularity = granularity;
 		
 		peers = new ArrayList<Peer>();	
-		jobs = new ArrayList<Job>();
-		
-		requested = new HashMap<Peer, HashMap<Integer,Integer>>();
-//		supplied = new HashMap<Integer,Integer>();
-		
-//		contention = new HashMap<Integer, Double>();
+				
+		requestedPerPeer = new HashMap<Peer, HashMap<Integer,Integer>>();
+		requestedToTheFederation = new HashMap<Integer,Integer>();
+		suppliedToTheFederation = new HashMap<Integer,Integer>();
 	}
 	
 	public void readWorkloads( String[] files){
@@ -81,62 +69,89 @@ public class ContentionGenerator {
 			df.readWorkload(peers, file);
 		}
 	}
-	
-	public void sortJobs(){
-		for(Peer peer : peers){
-			for(User user : peer.getUsers())
-				jobs.addAll(user.getJobs());
-		}		
-		Collections.sort(jobs);		
-	}
-	
+		
 	public void fulfillRequested(){
-		
 		for(Peer peer : peers){
+			
+			requestedPerPeer.put(peer, new HashMap<Integer, Integer>());	//adding the peer in the hashMap
+			
+			List<Job> jobsOfApeer = new ArrayList<Job>();
 			for(User user : peer.getUsers())
-				jobs.addAll(user.getJobs());
+				jobsOfApeer.addAll(user.getJobs());
+			
+			Collections.sort(jobsOfApeer);							//sorting the jobs by the submit time	
+			int lastTaskEndTime = 0;
+			for(Job job : jobsOfApeer){
+				Integer initialKey = job.getSubmitTime()/granularity;
+				for(Task task : job.getTasks()){
+					int endTime = job.getSubmitTime()+task.getRuntime();
+					lastTaskEndTime = (endTime>lastTaskEndTime)? endTime : lastTaskEndTime;
+					Integer finalKey = endTime/granularity;
+					for(int i = initialKey; i<=finalKey; i++){
+						Integer currentValue = requestedPerPeer.get(peer).get(i);
+						if(currentValue==null)
+							requestedPerPeer.get(peer).put(i, 1);
+						else
+							requestedPerPeer.get(peer).put(i, currentValue+1);
+					}				
+				}			
+			}
+			
+			//fulfilling the rest of map that doesn't have any request
+			for(int i = 0; i <= lastTaskEndTime/granularity; i++){
+				Integer currentValue = requestedPerPeer.get(peer).get(i);
+				if(currentValue==null)
+					requestedPerPeer.get(peer).put(i, 0);
+			}	
+			
 		}		
 		
-		int lastTaskEndTime = 0;
+	}	
+	
+	public void fulfillFederationRequestsData(){
+		int lastKey=0;
 		
-		for(Job job : jobs){
-			Integer initialKey = job.getSubmitTime()/granularity;
-			for(Task task : job.getTasks()){
-				int endTime = job.getSubmitTime()+task.getRuntime();
-				lastTaskEndTime = (endTime>lastTaskEndTime)? endTime : lastTaskEndTime;
-				Integer finalKey = endTime/granularity;
-				for(int i = initialKey; i<=finalKey; i++){
-					Integer currentValue = requested.get(i);
-					if(currentValue==null)
-						requested.put(i, 1);
-					else
-						requested.put(i, currentValue+1);
-				}				
-			}			
+		for (HashMap<Integer,Integer> jobsOfAPeer : requestedPerPeer.values()){
+			for(Map.Entry<Integer, Integer> jobsPerGrain : jobsOfAPeer.entrySet()){
+				
+				lastKey = lastKey<jobsPerGrain.getKey()?jobsPerGrain.getKey():lastKey;
+				
+				int numberOfRequests = jobsPerGrain.getValue();
+				
+				if(numberOfRequests<peerCapacity){
+					int currentSupplied = suppliedToTheFederation.get(jobsPerGrain.getKey())==null ? 0 : suppliedToTheFederation.get(jobsPerGrain.getKey());
+					suppliedToTheFederation.put(jobsPerGrain.getKey(), currentSupplied + peerCapacity - numberOfRequests);
+				}
+				else if(numberOfRequests>peerCapacity){
+					int currentRequested = requestedToTheFederation.get(jobsPerGrain.getKey())==null ? 0 : requestedToTheFederation.get(jobsPerGrain.getKey());
+					requestedToTheFederation.put(jobsPerGrain.getKey(), currentRequested + numberOfRequests - peerCapacity);
+				}			
+			}
 		}
 		
-		//fulfilling the rest of map that doesn't have any request
-		for(int i = 0; i <= lastTaskEndTime/granularity; i++){
-			Integer currentValue = requested.get(i);
-			if(currentValue==null)
-				requested.put(i, 0);
-		}		
+		for(int i = 0; i <= lastKey; i++){
+			if(suppliedToTheFederation.get(i)==null)
+				suppliedToTheFederation.put(i, 0);
+			if(requestedToTheFederation.get(i)==null)
+				requestedToTheFederation.put(i, 0);
+		}
 	}
-	
-	public void fulfillSupplied(){
-		
-	}
+
 	
 	public List<Peer> getPeers(){
 		return peers;
 	}
 	
-	public List<Job> getJobs(){
-		return jobs;
+	public Map<Peer, HashMap<Integer, Integer>> getRequestedPerPeer(){
+		return requestedPerPeer;
 	}
 	
-	public Map<Integer, Integer> getRequested(){
-		return requested;
+	public Map<Integer, Integer> getRequestedToTheFederation(){
+		return requestedToTheFederation;
+	}
+	
+	public Map<Integer, Integer> getSuppliedToTheFederation(){
+		return suppliedToTheFederation;
 	}
 
 }
