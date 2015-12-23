@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import utils.CsvGenerator;
 import utils.DataReader;
 import model.Job;
 import model.Peer;
@@ -16,29 +17,27 @@ import model.User;
 public class ContentionGenerator {
 	
 	public static void main(String[] args) throws FileNotFoundException {
-		String files[] = new String[]{ "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t1.txt"//,
-//									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t2.txt"//,
-//									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t3.txt",
-//									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t4.txt",
-//									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t10.txt",
-//									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t11.txt"
+		String files[] = new String[]{ "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t1.txt",
+									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t2.txt",
+									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t3.txt",
+									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t4.txt",
+									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t10.txt",
+									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t11.txt"
 									   };
-		int peerCapacity = 10;
+		int [] peerCapacityArray = new int [] {5, 10, 20, 40};
 		int granularity = 50;
-		ContentionGenerator cg = new ContentionGenerator(peerCapacity, granularity);
-		cg.readWorkloads(files);
-		cg.fulfillRequested();
 		
-		cg.fulfillRequested();
-		
-		cg.fulfillFederationRequestsData();
-				
-		for(int i = 0; i < 100; i++){
-			System.out.println("Req: "+cg.getRequestedToTheFederation().get(i)+"; Sup: "+cg.getSuppliedToTheFederation().get(i)+"; Kappa = "+((double)cg.getRequestedToTheFederation().get(i)/cg.getSuppliedToTheFederation().get(i)));			
-		}
-
-		
-		    
+		for(int peerCapacity : peerCapacityArray){
+			ContentionGenerator cg = new ContentionGenerator(peerCapacity, granularity);
+			cg.readWorkloads(files);
+			cg.fulfillRequested();		
+			cg.fulfillFederationRequestedAndSuppliedData();
+			
+			String outputFile = "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/contention/";
+			outputFile += "peerCapacity-"+peerCapacity+".csv";
+			CsvGenerator csvGen = new CsvGenerator(cg, outputFile);
+			csvGen.outputContention();
+		}    
 		
 	}
 	
@@ -108,7 +107,7 @@ public class ContentionGenerator {
 		
 	}	
 	
-	public void fulfillFederationRequestsData(){
+	public void fulfillFederationRequestedAndSuppliedData(){
 		int lastKey=0;
 		
 		for (HashMap<Integer,Integer> jobsOfAPeer : requestedPerPeer.values()){
@@ -152,6 +151,14 @@ public class ContentionGenerator {
 	
 	public Map<Integer, Integer> getSuppliedToTheFederation(){
 		return suppliedToTheFederation;
+	}
+	
+	public int getGranularity() {
+		return granularity;
+	}
+
+	public int getPeerCapacity() {
+		return peerCapacity;
 	}
 
 }
