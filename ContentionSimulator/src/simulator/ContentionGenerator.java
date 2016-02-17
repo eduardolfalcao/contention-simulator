@@ -61,12 +61,13 @@ public class ContentionGenerator {
 		suppliedToTheFederation = new HashMap<Integer,Integer>();
 	}
 	
-	public void readWorkloads( String[] files){
+	public List<Peer> readWorkloads( String[] files){
 		DataReader df = new DataReader();
 		for(String file :files){
 			System.out.println("Running on file: "+file);
 			df.readWorkload(peers, file);
-		}
+		}		
+		return peers;
 	}
 		
 	public void fulfillRequested(){

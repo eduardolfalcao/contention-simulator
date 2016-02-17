@@ -67,7 +67,7 @@ public class DataReader {
 		
 		Task task = new Task(Integer.parseInt(runtime));
 //		Job job = new Job(Integer.parseInt(jobId), Integer.parseInt(submitTime));
-		Job job = new Job(Integer.parseInt(jobId), Double.valueOf(submitTime).intValue());		
+		Job job = new Job(peerId, userId, Integer.parseInt(jobId), Double.valueOf(submitTime).intValue());		
 		job.getTasks().add(task);
 //		task.setJob(job);
 		User user = new User(userId);

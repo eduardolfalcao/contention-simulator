@@ -5,10 +5,14 @@ import java.util.List;
 
 public class Job implements Comparable<Job>{
 	
+	private String peerId, userId;
+	
 	private int id, submitTime;
 	private List<Task> tasks;
 	
-	public Job(int id, int submitTime){
+	public Job(String peerId, String userId, int id, int submitTime){
+		this.peerId = peerId;
+		this.userId = userId;
 		this.id = id;
 		this.submitTime = submitTime;
 		tasks = new ArrayList<Task>();
@@ -50,6 +54,14 @@ public class Job implements Comparable<Job>{
 	
 	public List<Task> getTasks(){
 		return tasks;
+	}
+	
+	public String getPeerId(){
+		return peerId;
+	}
+	
+	public String getUserId(){
+		return userId;
 	}
 
 }
