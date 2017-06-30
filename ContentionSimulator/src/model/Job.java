@@ -19,6 +19,11 @@ public class Job implements Comparable<Job>{
 	}
 	
 	@Override
+	public String toString() {
+		return "Job: "+id+" - "+tasks;
+	}
+	
+	@Override
 	public boolean equals(Object obj){
 		if(!(obj instanceof Job))
 			return false;

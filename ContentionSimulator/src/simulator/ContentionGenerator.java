@@ -1,11 +1,14 @@
 package simulator;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import utils.CsvGenerator;
 import utils.DataReader;
@@ -16,25 +19,52 @@ import model.User;
 
 public class ContentionGenerator {
 	
+	public static final String USERS = "users";
+	public static final String PEERS = "peers";
+	public static final String K = "k";
+	public static final String BASE_FOLDER = "base_folder";
+	public static final String OUTPUT_FOLDER = "output_folder";
+	public static final String EXPERIMENT_NAME = "experiment_name";
+	public static final String CAPACITY = "capacity";
+	public static final String GRANULARITY = "granularity";	
+	
 	public static void main(String[] args) throws FileNotFoundException {
-		String files[] = new String[]{ "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t1.txt",
-									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t2.txt",
-									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t3.txt",
-									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t4.txt",
-									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t10.txt",
-									   "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/workload_clust_5spt_10ups_gwa-t11.txt"
-									   };
-		int [] peerCapacityArray = new int [] {5, 10, 20, 40};
-		int granularity = 50;
 		
-		for(int peerCapacity : peerCapacityArray){
-			ContentionGenerator cg = new ContentionGenerator(peerCapacity, granularity);
+		Properties props = new Properties();
+		FileInputStream input = new FileInputStream(args[0]);
+		try {
+			props.load(input);
+		} catch (IOException e) {
+			System.out.println("Error while loading properties!");
+			e.printStackTrace();
+		}
+				
+		int nUsers = Integer.parseInt(props.getProperty(USERS));
+		int nPeers = Integer.parseInt(props.getProperty(PEERS));
+		int nClusters = Integer.parseInt(props.getProperty(K));
+		int granularity = Integer.parseInt(props.getProperty(GRANULARITY));
+		
+		String baseFolder = props.getProperty(BASE_FOLDER);
+		String experiment = props.getProperty(EXPERIMENT_NAME);
+		String inputFolder = experiment+nPeers+"spt_"+nUsers+"ups/";
+		
+		String pathBase = baseFolder+inputFolder;
+		int [] traces = new int [] {1, 2, 3, 4, 10, 11};		
+		String files[] = new String[6];
+		for(int i = 0; i<traces.length; i++)
+			files[i] = pathBase+experiment+nPeers+"spt_"+nUsers+"ups_gwa-t"+traces[i]+".txt";
+		
+		int [] peerCapacity = new int [5];
+		for(int i = 0; i<peerCapacity.length; i++)
+			peerCapacity[i] = Integer.parseInt(props.getProperty(CAPACITY+(i+1)));		
+		
+		String outputFolder = baseFolder+props.getProperty(OUTPUT_FOLDER);		
+		for(int capacity : peerCapacity){
+			ContentionGenerator cg = new ContentionGenerator(capacity, granularity);
 			cg.readWorkloads(files);
 			cg.fulfillRequested();		
-			cg.fulfillFederationRequestedAndSuppliedData();
-			
-			String outputFile = "/home/eduardolfalcao/Área de Trabalho/Dropbox/Doutorado/Disciplinas/Projeto de Tese 5/workload-generator/tool/contention/";
-			outputFile += "peerCapacity-"+peerCapacity+".csv";
+			cg.fulfillFederationRequestedAndSuppliedData();			
+			String outputFile = outputFolder+"peerCapacity"+capacity+"-users"+nUsers+"-peers"+nPeers+"-clusters"+nClusters+".csv";
 			CsvGenerator csvGen = new CsvGenerator(cg, outputFile);
 			csvGen.outputContention();
 		}    
@@ -61,7 +91,7 @@ public class ContentionGenerator {
 		suppliedToTheFederation = new HashMap<Integer,Integer>();
 	}
 	
-	public List<Peer> readWorkloads( String[] files){
+	public List<Peer> readWorkloads(String[] files){
 		DataReader df = new DataReader();
 		for(String file :files){
 			System.out.println("Running on file: "+file);

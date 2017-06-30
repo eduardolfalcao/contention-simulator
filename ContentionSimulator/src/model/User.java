@@ -14,6 +14,11 @@ public class User {
 	}
 	
 	@Override
+	public String toString() {
+		return "User: "+userId+" - "+jobs;
+	}
+	
+	@Override
 	public boolean equals(Object obj){
 		if(!(obj instanceof User))
 			return false;

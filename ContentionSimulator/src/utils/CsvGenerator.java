@@ -54,7 +54,7 @@ public class CsvGenerator{
 		for(int i = 0; i < size; i++){
 //			System.out.println("Req: "+contentionGenerator.getRequestedToTheFederation().get(i)+"; Sup: "+contentionGenerator.getSuppliedToTheFederation().get(i)+"; Kappa = "+((double)contentionGenerator.getRequestedToTheFederation().get(i)/contentionGenerator.getSuppliedToTheFederation().get(i)));
 			try{
-				writer.append(i+","+((double)contentionGenerator.getRequestedToTheFederation().get(i)/contentionGenerator.getSuppliedToTheFederation().get(i))+","+contentionGenerator.getPeerCapacity()+"\n");
+				writer.append(i+","+((double)contentionGenerator.getRequestedToTheFederation().get(i)/(double)contentionGenerator.getSuppliedToTheFederation().get(i))+","+contentionGenerator.getPeerCapacity()+"\n");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

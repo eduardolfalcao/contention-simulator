@@ -14,6 +14,11 @@ public class Peer {
 	}
 	
 	@Override
+	public String toString() {
+		return "Peer: "+peerId+" - "+users+"\n";
+	}
+	
+	@Override
 	public boolean equals(Object obj){
 		if(!(obj instanceof Peer))
 			return false;

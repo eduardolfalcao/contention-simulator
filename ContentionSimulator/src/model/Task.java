@@ -3,7 +3,6 @@ package model;
 public class Task {
 	
 	private int runtime;
-//	private Job job;
 	
 	public Task(int runtime){
 		this.runtime = runtime;
@@ -13,8 +12,9 @@ public class Task {
 		return runtime;
 	}
 	
-//	public void setJob(Job job){
-//		this.job = job;
-//	}
+	@Override
+	public String toString() {
+		return "runtime: "+runtime;
+	}
 
 }
