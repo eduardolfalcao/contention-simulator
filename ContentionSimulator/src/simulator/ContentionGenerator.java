@@ -58,7 +58,7 @@ public class ContentionGenerator {
 		for(int i = 0; i<peerCapacity.length; i++)
 			peerCapacity[i] = Integer.parseInt(props.getProperty(CAPACITY+(i+1)));		
 		
-		String outputFolder = baseFolder+props.getProperty(OUTPUT_FOLDER);		
+		String outputFolder = pathBase+props.getProperty(OUTPUT_FOLDER);
 		for(int capacity : peerCapacity){
 			ContentionGenerator cg = new ContentionGenerator(capacity, granularity);
 			cg.readWorkloads(files);
