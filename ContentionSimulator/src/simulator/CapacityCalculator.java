@@ -136,18 +136,19 @@ public class CapacityCalculator {
 			}
 			
 			//fulfilling the rest of map that doesn't have any request
-			for(int i = 0; i <= lastTaskEndTime/granularity; i++){
-				Integer currentValue = requestedPerPeer.get(peer).get(i);
-				if(currentValue==null && i < endTimeOfExperiment)
-					requestedPerPeer.get(peer).put(i, 0);
-			}
+//			for(int i = 0; i <= endTimeOfExperiment; i++){
+//				Integer currentValue = requestedPerPeer.get(peer).get(i);
+////				if(currentValue==null)
+////					requestedPerPeer.get(peer).put(i, 0);
+//			}
 			
 			if(!requestedPerPeer.get(peer).containsKey(0)){
 				requestedPerPeer.get(peer).put(0, 0);	
 			}			
 			requestedPerPeer.get(peer).put(endTimeOfExperiment, 0);
 			
-		}		
+		}	
+		
 		
 	}	
 	
