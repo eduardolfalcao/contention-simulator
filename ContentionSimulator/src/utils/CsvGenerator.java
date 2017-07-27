@@ -2,23 +2,22 @@ package utils;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.Map;
 
 import simulator.ContentionGenerator;
 
 
 public class CsvGenerator{
 	
-	private String outputFile;
-	private ContentionGenerator contentionGenerator;	
+	private String outputFile;	
 		
-	public CsvGenerator(ContentionGenerator contentionGenerator, String outputFile){
-		this.contentionGenerator = contentionGenerator;
+	public CsvGenerator(String outputFile){
 		this.outputFile = outputFile;
 	}
 	
-	public void outputContention(){	
+	public void outputContention(Map<Integer, Integer> requestedToTheFederation, Map<Integer, Integer> suppliedToTheFederation, int capacity){	
 		FileWriter writer = this.createHeaderForContention();
-		writer = writeContention(writer, contentionGenerator);
+		writer = writeContention(writer, requestedToTheFederation, suppliedToTheFederation, capacity);
 		flushFile(writer);
 	}
 	
@@ -45,16 +44,16 @@ public class CsvGenerator{
 		return writer;	    
 	}
 	
-	private FileWriter writeContention(FileWriter writer, ContentionGenerator contentionGenerator){
+	private FileWriter writeContention(FileWriter writer, Map<Integer, Integer> requestedToTheFederation, Map<Integer, Integer> suppliedToTheFederation, int capacity){
 		
-		int size = contentionGenerator.getRequestedToTheFederation().size();
-		if(size != contentionGenerator.getSuppliedToTheFederation().size())
+		int size = requestedToTheFederation.size();
+		if(size != suppliedToTheFederation.size())
 			System.out.println("supplied and requested have different sizes...");
 		
 		for(int i = 0; i < size; i++){
 //			System.out.println("Req: "+contentionGenerator.getRequestedToTheFederation().get(i)+"; Sup: "+contentionGenerator.getSuppliedToTheFederation().get(i)+"; Kappa = "+((double)contentionGenerator.getRequestedToTheFederation().get(i)/contentionGenerator.getSuppliedToTheFederation().get(i)));
 			try{
-				writer.append(i+","+((double)contentionGenerator.getRequestedToTheFederation().get(i)/(double)contentionGenerator.getSuppliedToTheFederation().get(i))+","+contentionGenerator.getPeerCapacity()+"\n");
+				writer.append(i+","+((double)requestedToTheFederation.get(i)/(double)suppliedToTheFederation.get(i))+","+capacity+"\n");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}

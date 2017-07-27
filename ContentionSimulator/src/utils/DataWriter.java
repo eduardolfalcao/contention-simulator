@@ -70,12 +70,23 @@ public class DataWriter {;
 	}
 
 	public void sortJobs() {
+		int time = 0;
+		
 		jobs = new ArrayList<Job>();
 		for (Peer peer : peers) {
 			for (User user : peer.getUsers()) {
 				jobs.addAll(user.getJobs());
+				for(Job j: user.getJobs()){
+					int begin = j.getSubmitTime();
+					for(Task t : j.getTasks()){
+						int end = begin + t.getRuntime();
+						if(end > time)
+							time = end;
+					}								
+				}
 			}
 		}
+		System.out.println("End time: "+time);
 		Collections.sort(jobs);
 	}
 

@@ -8,7 +8,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.Set;
 
 import utils.CsvGenerator;
 import utils.DataReader;
@@ -17,7 +19,7 @@ import model.Peer;
 import model.Task;
 import model.User;
 
-public class ContentionGenerator {
+public class CapacityCalculator {
 	
 	public static final String USERS = "users";
 	public static final String PEERS = "peers";
@@ -25,7 +27,8 @@ public class ContentionGenerator {
 	public static final String BASE_FOLDER = "base_folder";
 	public static final String OUTPUT_FOLDER = "output_folder";
 	public static final String EXPERIMENT_NAME = "experiment_name";
-	public static final String CAPACITY = "capacity";
+	public static final String END_TIME = "end_time";
+	public static final String KAPPA = "kappa";
 	public static final String GRANULARITY = "granularity";	
 	
 	public static void main(String[] args) throws FileNotFoundException {
@@ -43,6 +46,7 @@ public class ContentionGenerator {
 		int nPeers = Integer.parseInt(props.getProperty(PEERS));
 		int nClusters = Integer.parseInt(props.getProperty(K));
 		int granularity = Integer.parseInt(props.getProperty(GRANULARITY));
+		int endTime = Integer.parseInt(props.getProperty(END_TIME));
 		
 		String baseFolder = props.getProperty(BASE_FOLDER);
 		String experiment = props.getProperty(EXPERIMENT_NAME);
@@ -54,17 +58,20 @@ public class ContentionGenerator {
 		for(int i = 0; i<traces.length; i++)
 			files[i] = pathBase+experiment+nPeers+"spt_"+nUsers+"ups_gwa-t"+traces[i]+".txt";
 		
-		int [] peerCapacity = new int [5];
-		for(int i = 0; i<peerCapacity.length; i++)
-			peerCapacity[i] = Integer.parseInt(props.getProperty(CAPACITY+(i+1)));		
+		double [] peerKappa = new double [4];
+		for(int i = 0; i<peerKappa.length; i++)
+			peerKappa[i] = Double.parseDouble(props.getProperty(KAPPA+(i+1)));		
 		
 		String outputFolder = pathBase+props.getProperty(OUTPUT_FOLDER);
-		for(int capacity : peerCapacity){
-			ContentionGenerator cg = new ContentionGenerator(capacity, granularity);
+		for(double kappa : peerKappa){
+			CapacityCalculator cg = new CapacityCalculator(kappa, granularity, endTime);
 			cg.readWorkloads(files);
-			cg.fulfillRequested();		
-			cg.fulfillFederationRequestedAndSuppliedData();			
-			String outputFile = outputFolder+"peerCapacity"+capacity+"-users"+nUsers+"-peers"+nPeers+"-clusters"+nClusters+".csv";
+			cg.fulfillRequested();
+			int capacity = cg.fulfillCapacity();
+			System.out.println("when kappa = "+kappa+", the capacity should be = "+capacity);
+			cg.fulfillFederationRequestedAndSuppliedData(capacity);			
+			String outputFile = outputFolder+"peerCapacity"+capacity+"-kappa"+kappa+"-users"+nUsers+"-peers"+nPeers+"-clusters"+nClusters+".csv";
+			System.out.println(outputFile);
 			CsvGenerator csvGen = new CsvGenerator(outputFile);
 			csvGen.outputContention(cg.getRequestedToTheFederation(),cg.getSuppliedToTheFederation(),capacity);
 		}    
@@ -72,17 +79,18 @@ public class ContentionGenerator {
 	}
 	
 	private int granularity;
-	private int peerCapacity;
+	private double kappa;
+	private int endTimeOfExperiment;
 	private List<Peer> peers;
 	
 	private Map<Peer, HashMap<Integer, Integer>> requestedPerPeer;
-	private Map<Integer, Integer> requestedToTheFederation;
-	private Map<Integer, Integer> suppliedToTheFederation;
+	private Map<Integer, Integer> requestedToTheFederation, suppliedToTheFederation;
 	
 	
-	public ContentionGenerator(int peerCapacity, int granularity){
-		this.peerCapacity = peerCapacity;
+	public CapacityCalculator(double kappa, int granularity, int endTime){
+		this.kappa = kappa;
 		this.granularity = granularity;
+		this.endTimeOfExperiment = endTime;
 		
 		peers = new ArrayList<Peer>();	
 				
@@ -119,9 +127,9 @@ public class ContentionGenerator {
 					Integer finalKey = endTime/granularity;
 					for(int i = initialKey; i<=finalKey; i++){
 						Integer currentValue = requestedPerPeer.get(peer).get(i);
-						if(currentValue==null)
+						if(currentValue==null && i < endTimeOfExperiment)
 							requestedPerPeer.get(peer).put(i, 1);
-						else
+						else if(currentValue!=null && i < endTimeOfExperiment)
 							requestedPerPeer.get(peer).put(i, currentValue+1);
 					}				
 				}			
@@ -130,15 +138,46 @@ public class ContentionGenerator {
 			//fulfilling the rest of map that doesn't have any request
 			for(int i = 0; i <= lastTaskEndTime/granularity; i++){
 				Integer currentValue = requestedPerPeer.get(peer).get(i);
-				if(currentValue==null)
+				if(currentValue==null && i < endTimeOfExperiment)
 					requestedPerPeer.get(peer).put(i, 0);
-			}	
+			}
+			
+			if(!requestedPerPeer.get(peer).containsKey(0)){
+				requestedPerPeer.get(peer).put(0, 0);	
+			}			
+			requestedPerPeer.get(peer).put(endTimeOfExperiment, 0);
 			
 		}		
 		
 	}	
 	
-	public void fulfillFederationRequestedAndSuppliedData(){
+	public int fulfillCapacity(){
+		double capacity = 0;
+		int n = 0;
+		for(Peer peer : peers){			
+			Map<Integer, Integer> timeAndDemand = requestedPerPeer.get(peer);
+			
+			Entry<Integer, Integer> last = null;			
+			for(Entry<Integer, Integer> e : timeAndDemand.entrySet()){
+				int period, demand;				
+				if(last == null){								
+					last = e;
+					continue;
+				} else{
+					demand = last.getValue();
+					period = e.getKey() - last.getKey();
+					last = e;
+				}								
+				capacity += period * demand;
+				if(demand>0)
+					n++;
+			}
+		}		
+		capacity = capacity / (n*kappa); 
+		return (int) Math.ceil(capacity);		 
+	}
+	
+	public void fulfillFederationRequestedAndSuppliedData(int peerCapacity){
 		int lastKey=0;
 		
 		for (HashMap<Integer,Integer> jobsOfAPeer : requestedPerPeer.values()){
@@ -188,8 +227,8 @@ public class ContentionGenerator {
 		return granularity;
 	}
 
-	public int getPeerCapacity() {
-		return peerCapacity;
+	public double getKappa() {
+		return kappa;
 	}
 
 }
